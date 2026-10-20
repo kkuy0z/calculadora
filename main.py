@@ -1,4 +1,3 @@
-import multiplicacao
 
 print("=== CALCULADORA ===")
 print("1. Somar")
