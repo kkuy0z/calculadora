@@ -1,4 +1,3 @@
-
 print("=== CALCULADORA ===")
 print("1. Somar")
 print("2. Subtrair")
