@@ -37,20 +37,6 @@
             border-radius: 5px;
         }
 
-        .inputs {
-            display: flex;
-            gap: 5px;
-            margin-bottom: 15px;
-        }
-
-        .inputs input {
-            flex: 0 0 15%;
-            padding: 5px;
-            font-size: .9rem;
-            height: 20px;
-            width: 130px;
-        }
-
         .btns {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -92,10 +78,6 @@
     <div class="calc">
         <h1>Calculadora</h1>
         <div class="display" id="d">0</div>
-        <div class="inputs">
-            <input id="n1" placeholder="Número 1">
-            <input id="n2" placeholder="Número 2">
-        </div>
         <div class="btns">
             <button class="num" onclick="n('7')">7</button>
             <button class="num" onclick="n('8')">8</button>
@@ -117,18 +99,18 @@
         </div>
     </div>
     <script>
-        let v = '0', o = null, t = 'n1';
-        const d = document.getElementById('d'), n1 = document.getElementById('n1'), n2 = document.getElementById('n2');
+        let v = '0', o = null, a = null;
+        const d = document.getElementById('d');
         const u = () => d.textContent = v;
-        const n = (x) => { v = v === '0' && x !== '.' ? x : v + x; (t === 'n1' ? n1 : n2).value = v; u(); };
-        const op = (x) => { o = x; t = 'n2'; v = '0'; u(); };
-        const cl = () => { v = '0'; o = null; t = 'n1'; n1.value = n2.value = ''; u(); };
+        const n = (x) => { v = v === '0' && x !== '.' ? x : v + x; u(); };
+        const op = (x) => { o = x; a = +v; v = '0'; u(); };
+        const cl = () => { v = '0'; o = null; a = null; u(); };
         const calc = async () => {
-            if (!o) return;
-            const r = await fetch('/c', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ a: +n1.value, b: +n2.value, o }) });
+            if (!o || a === null) return;
+            const r = await fetch('/c', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ a, b: +v, o }) });
             const j = await r.json();
             if (j.e) return d.textContent = 'Erro';
-            v = String(j.r); n1.value = j.r; n2.value = ''; o = null; t = 'n1'; u();
+            v = String(j.r); o = null; a = null; u();
         };
     </script>
 </body>
