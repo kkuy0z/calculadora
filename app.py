@@ -34,7 +34,6 @@ HTML = """
     </div>
     <button onclick="calcular()">Calcular</button>
     <p id="res"></p>
-
     <script>
         async function calcular() {
             const a = parseFloat(document.getElementById('a').value);
