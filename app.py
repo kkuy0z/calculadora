@@ -8,45 +8,76 @@ HTML = """
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Calculadora Flask</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; padding: 20px; }
-        .input-group { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; }
-        input, select, button { padding: 10px; font-size: 16px; }
-        input[type="number"] { flex: 1; }
-        select { width: 100px; }
-        button { background: #007bff; color: white; border: none; cursor: pointer; width: 100%; }
-        button:hover { background: #0056b3; }
-        #res { margin-top: 20px; font-size: 18px; font-weight: bold; text-align: center; }
+        body { font-family: sans-serif; background: #f0f0f0; display: flex; justify-content: center; padding-top: 50px; margin: 0; }
+        .calc { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0, 0, 0, .1); width: 300px; }
+        h1 { text-align: center; margin-bottom: 20px; }
+        .display { background: #eee; padding: 15px; text-align: right; font-size: 1.5rem; margin-bottom: 15px; border-radius: 5px; overflow-x: auto; }
+        .btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+        button { padding: 15px; font-size: 1.2rem; border: none; border-radius: 5px; cursor: pointer; }
+        .num { background: #eee; }
+        .op { background: #4285f4; color: white; }
+        .eq { background: #34a853; color: white; grid-column: span 2; }
+        .cl { background: #ea4335; color: white; grid-column: span 2; }
     </style>
 </head>
 <body>
-    <h1>Calculadora</h1>
-    <div class="input-group">
-        <input type="number" id="a" placeholder="Número 1" step="any">
-        <select id="op">
-            <option value="somar">+</option>
-            <option value="subtrair">-</option>
-            <option value="multiplicar">*</option>
-            <option value="dividir">/</option>
-        </select>
-        <input type="number" id="b" placeholder="Número 2" step="any">
+    <div class="calc">
+        <h1>Calculadora</h1>
+        <div class="display" id="d">0</div>
+        <div class="btns">
+            <button class="num" onclick="n('7')">7</button>
+            <button class="num" onclick="n('8')">8</button>
+            <button class="num" onclick="n('9')">9</button>
+            <button class="op" onclick="op('add')">+</button>
+            <button class="num" onclick="n('4')">4</button>
+            <button class="num" onclick="n('5')">5</button>
+            <button class="num" onclick="n('6')">6</button>
+            <button class="op" onclick="op('sub')">-</button>
+            <button class="num" onclick="n('1')">1</button>
+            <button class="num" onclick="n('2')">2</button>
+            <button class="num" onclick="n('3')">3</button>
+            <button class="op" onclick="op('mul')">×</button>
+            <button class="num" onclick="n('0')">0</button>
+            <button class="num" onclick="n('.')">.</button>
+            <button class="op" onclick="op('div')">÷</button>
+            <button class="eq" onclick="calc()">=</button>
+            <button class="cl" onclick="cl()">C</button>
+        </div>
     </div>
-    <button onclick="calcular()">Calcular</button>
-    <p id="res"></p>
     <script>
-        async function calcular() {
-            const a = parseFloat(document.getElementById('a').value);
-            const b = parseFloat(document.getElementById('b').value);
-            const op = document.getElementById('op').value;
-            const r = await fetch('/calcular', {
+        let v = '0', o = null, a = null;
+        const d = document.getElementById('d');
+        const u = () => d.textContent = v;
+        const n = (x) => { v = v === '0' && x !== '.' ? x : v + x; u(); };
+        const op = (x) => { o = x; a = +v; v = '0'; u(); };
+        const cl = () => { v = '0'; o = null; a = null; u(); };
+        const calc = async () => {
+            if (!o || a === null) return;
+            const r = await fetch('/c', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({a, b, op})
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ a, b: +v, o })
             });
-            const d = await r.json();
-            document.getElementById('res').innerText = d.resultado !== undefined ? d.resultado : d.erro;
-        }
+            const j = await r.json();
+            if (j.e) { v = '0'; o = null; a = null; return d.textContent = 'Erro'; }
+            v = String(j.r); o = null; a = null; u();
+        };
+
+        // Suporte ao teclado numérico
+        document.addEventListener('keydown', (e) => {
+            const key = e.key;
+            if (key >= '0' && key <= '9') n(key);
+            else if (key === '.' || key === 'Decimal') n('.');
+            else if (key === '+' || key === 'Add') op('add');
+            else if (key === '-' || key === 'Subtract') op('sub');
+            else if (key === '*' || key === 'Multiply') op('mul');
+            else if (key === '/' || key === 'Divide') op('div');
+            else if (key === 'Enter' || key === '=') calc();
+            else if (key === 'Escape' || key === 'Delete' || key === 'Backspace') cl();
+        });
     </script>
 </body>
 </html>
@@ -56,19 +87,24 @@ HTML = """
 def index():
     return render_template_string(HTML)
 
-@app.route('/calcular', methods=['POST'])
+@app.route('/c', methods=['POST'])
 def calcular():
     data = request.json
-    a, b, op = data['a'], data['b'], data['op']
-    if op == 'somar':
-        return jsonify({'resultado': somar(a, b)})
-    if op == 'subtrair':
-        return jsonify({'resultado': subtrair(a, b)})
-    if op == 'multiplicar':
-        return jsonify({'resultado': multiplicar(a, b)})
-    if op == 'dividir':
-        return jsonify({'resultado': dividir(a, b)})
-    return jsonify({'erro': 'Operação inválida'})
+    a, b, op = data['a'], data['b'], data['o']
+    try:
+        if op == 'add':
+            return jsonify({'r': somar(a, b)})
+        if op == 'sub':
+            return jsonify({'r': subtrair(a, b)})
+        if op == 'mul':
+            return jsonify({'r': multiplicar(a, b)})
+        if op == 'div':
+            if b == 0:
+                return jsonify({'e': True})
+            return jsonify({'r': dividir(a, b)})
+        return jsonify({'e': True})
+    except Exception:
+        return jsonify({'e': True})
 
 if __name__ == '__main__':
     app.run(debug=True)
